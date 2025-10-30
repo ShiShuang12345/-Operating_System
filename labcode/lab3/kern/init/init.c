@@ -35,6 +35,17 @@ int kern_init(void) {
     clock_init();   // init clock interrupt
     intr_enable();  // enable irq interrupt
 
+    /* 
+    intr_disable();  // 先关闭中断，避免时钟中断干扰
+    // 测试断点异常
+    cprintf("Triggering breakpoint exception...\n");
+    __asm__ __volatile__("ebreak");  // 触发断点异常
+
+    // 测试非法指令异常
+    cprintf("Triggering illegal instruction exception...\n");
+    __asm__ __volatile__(".word 0x00000000");  // 触发非法指令异常
+     */
+
     /* do nothing */
     while (1)
         ;
