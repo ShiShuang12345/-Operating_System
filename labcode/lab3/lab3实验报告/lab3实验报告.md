@@ -256,7 +256,7 @@ void exception_handler(struct trapframe *tf) {​
             cprintf("Exception type: breakpoint\n");​
             cprintf("ebreak caught at 0x%016lx\n", tf->epc);​
             // 跳过ebreak指令，使程序能继续执行后续代码​
-            tf->epc += 4;​
+            tf->epc += 2;​
             break;​
         ​
         default:  // 未处理的异常​
@@ -286,7 +286,6 @@ int kern_init(void) {
     pmm_init();
     clock_init();
     
-    intr_disable();  // 先关闭中断，避免时钟中断干扰
     // 测试断点异常
     cprintf("Triggering breakpoint exception...\n");
     __asm__ __volatile__("ebreak");  // 触发断点异常
@@ -305,9 +304,3 @@ int kern_init(void) {
 编译运行`make qemu`后，终端输出如下：
 
 ![challenge3结果](challenge3结果.png)
-
-### 关键注意事项
-
-1. `epc += 4`**的必要性**：RISC-V 指令长度固定为 4 字节（压缩指令除外），异常处理后必须将`epc`增加 4，否则 CPU 会重复执行异常指令，导致无限循环
-
-2. **中断关闭与开启**：测试阶段关闭中断（`intr_disable()`）可避免时钟中断与异常输出交织，测试完成
