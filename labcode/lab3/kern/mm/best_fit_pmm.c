@@ -10,7 +10,7 @@
    usually split, and the remainder added to the list as another free block.
    Please see Page 196~198, Section 8.2 of Yan Wei Min's chinese book "Data Structure -- C programming language"
 */
-// LAB2 EXERCISE 1: YOUR CODE
+// LAB2 EXERCISE 1: 2312848
 // you should rewrite functions: default_init,default_init_memmap,default_alloc_pages, default_free_pages.
 /*
  * Details of FFMA
@@ -72,8 +72,11 @@ best_fit_init_memmap(struct Page *base, size_t n) {
     struct Page *p = base;
     for (; p != base + n; p ++) {
         assert(PageReserved(p));
-        /*LAB2 请补充你在lab2中的代码 */ 
-        
+        /*LAB2 EXERCISE 2: 2312848*/ 
+        // 清空当前页框的标志和属性信息，并将页框的引用计数设置为0
+        p->flags = p->property = 0;
+        set_page_ref(p, 0);
+
     }
     base->property = n;
     SetPageProperty(base);
@@ -84,43 +87,81 @@ best_fit_init_memmap(struct Page *base, size_t n) {
         list_entry_t* le = &free_list;
         while ((le = list_next(le)) != &free_list) {
             struct Page* page = le2page(le, page_link);
-            /*LAB2 请补充你在lab2中的代码 */ 
+            /*LAB2 EXERCISE 2: 2312848*/ 
+            // 编写代码
+            // 1、当base < page时，找到第一个大于base的页，将base插入到它前面，并退出循环
+            if (base < page) {
+                list_add_before(le, &(base->page_link));
+                break;
+            }
+            // 2、当list_next(le) == &free_list时，若已经到达链表结尾，将base插入到链表尾部
+            else if (list_next(le) == &free_list) {
+                list_add(le, &(base->page_link));
+            }
 
         }
     }
 }
 
+/* 最佳适应算法分配物理页 */
 static struct Page *
 best_fit_alloc_pages(size_t n) {
+    // 验证请求页数必须大于0
     assert(n > 0);
+    
+    // 检查系统是否有足够的空闲页满足请求
     if (n > nr_free) {
-        return NULL;
+        return NULL; // 空闲页不足，返回NULL
     }
-    struct Page *page = NULL;
-    list_entry_t *le = &free_list;
-    size_t min_size = nr_free + 1;
-    /*LAB2 请补充你在lab2中的代码*/ 
-
+    
+    struct Page *page = NULL;      // 用于记录找到的最佳空闲块
+    list_entry_t *le = &free_list; // 空闲链表遍历指针
+    size_t min_size = nr_free + 1; // 初始化最小大小为不可能的值（大于最大空闲块）
+    
+    /* LAB2 EXERCISE 2: 2312848 */
+    // 下面的代码修改为最佳适应算法
+    // 遍历空闲链表，查找满足需求的最小空闲页框
     while ((le = list_next(le)) != &free_list) {
-        struct Page *p = le2page(le, page_link);
-        if (p->property >= n) {
-            page = p;
-            break;
+        struct Page *p = le2page(le, page_link); // 获取当前页面对应的Page结构
+        
+        // 检查当前块是否满足请求且比之前找到的块更小
+        if (p->property >= n && p->property < min_size) {
+            page = p;                // 更新最佳块指针
+            min_size = p->property;   // 更新最小满足大小
         }
     }
 
+    // 如果找到合适的空闲块
     if (page != NULL) {
+        // 获取当前块在链表中的前一个节点
         list_entry_t* prev = list_prev(&(page->page_link));
+        
+        // 从空闲链表中移除当前块
         list_del(&(page->page_link));
+        
+        // 如果当前块大于请求大小，进行分割
         if (page->property > n) {
+            // 计算剩余块的起始位置（当前块地址 + 请求页数）
             struct Page *p = page + n;
+            
+            // 设置剩余块的大小（原大小 - 请求大小）
             p->property = page->property - n;
+            
+            // 标记剩余块为空闲块的起始页
             SetPageProperty(p);
+            
+            // 将剩余块插入到原位置（前一个节点之后）
             list_add(prev, &(p->page_link));
         }
+        
+        // 更新全局空闲页计数
         nr_free -= n;
+        
+        // 标记分配出的块为非空闲
         ClearPageProperty(page);
     }
+    
+    // 返回分配的页面（可能为NULL）
     return page;
 }
 
@@ -133,7 +174,12 @@ best_fit_free_pages(struct Page *base, size_t n) {
         p->flags = 0;
         set_page_ref(p, 0);
     }
-    /*LAB2 请补充你在lab2中的代码*/
+    /*LAB2 EXERCISE 2: 2312848*/ 
+    // 编写代码
+    // 具体来说就是设置当前页块的属性为释放的页块数、并将当前页块标记为已分配状态、最后增加nr_free的值
+    base->property = n;
+    SetPageProperty(base);
+    nr_free += n;
 
     if (list_empty(&free_list)) {
         list_add(&free_list, &(base->page_link));
@@ -153,13 +199,26 @@ best_fit_free_pages(struct Page *base, size_t n) {
     list_entry_t* le = list_prev(&(base->page_link));
     if (le != &free_list) {
         p = le2page(le, page_link);
-        /*LAB2 请补充你在lab2中的代码*/
-        
+        /*LAB2 EXERCISE 2: 2312848*/ 
+        // 编写代码
+        // 1、判断前面的空闲页块是否与当前页块是连续的，如果是连续的，则将当前页块合并到前面的空闲页块中
+        // 2、首先更新前一个空闲页块的大小，加上当前页块的大小
+        // 3、清除当前页块的属性标记，表示不再是空闲页块
+        // 4、从链表中删除当前页块
+        // 5、将指针指向前一个空闲页块，以便继续检查合并后的连续空闲页块
+        // 向前合并
+        if (p + p->property == base) {
+            p->property += base->property;
+            ClearPageProperty(base);
+            list_del(&(base->page_link));
+            base = p;
+        }
     }
 
     le = list_next(&(base->page_link));
     if (le != &free_list) {
         p = le2page(le, page_link);
+        // 向后合并（原代码已实现）
         if (base + base->property == p) {
             base->property += p->property;
             ClearPageProperty(p);
@@ -305,7 +364,7 @@ best_fit_check(void) {
     cprintf("grading: %d / %d points\n",score, sumscore);
     #endif
 }
-//这个结构体在
+
 const struct pmm_manager best_fit_pmm_manager = {
     .name = "best_fit_pmm_manager",
     .init = best_fit_init,
@@ -315,4 +374,3 @@ const struct pmm_manager best_fit_pmm_manager = {
     .nr_free_pages = best_fit_nr_free_pages,
     .check = best_fit_check,
 };
-
