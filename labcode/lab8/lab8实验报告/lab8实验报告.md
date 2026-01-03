@@ -7,20 +7,20 @@
 已将实验2/3/4/5/6/7中完成的代码填入对应注释位置，主要包括：
 
 1. **proc.c中的alloc_proc函数**：完成了进程控制块的初始化，包括状态、PID、栈、上下文等基本信息，以及实验8新增的文件结构指针初始化
-   ```c
-   // lab5 add:
-   proc->wait_state = 0;
-   proc->cptr = proc->optr = proc->yptr = NULL;
-   // lab6 add:
-   proc->rq = NULL;
-   list_init(&(proc->run_link));
-   proc->time_slice = 0;
-   skew_heap_init(&(proc->lab6_run_pool));
-   proc->lab6_stride = 0;
-   proc->lab6_priority = 1;
-   // lab8 add:
-   proc->filesp = NULL;
-   ```
+```c
+// lab5 add:
+proc->wait_state = 0;
+proc->cptr = proc->optr = proc->yptr = NULL;
+// lab6 add:
+proc->rq = NULL;
+list_init(&(proc->run_link));
+proc->time_slice = 0;
+skew_heap_init(&(proc->lab6_run_pool));
+proc->lab6_stride = 0;
+proc->lab6_priority = 1;
+// lab8 add:
+proc->filesp = NULL;
+```
 
 2. **pmm.c中的copy_range函数**：fork时复制父进程的页面到子进程
 ```c
